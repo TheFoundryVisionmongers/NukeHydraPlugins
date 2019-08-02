@@ -1,0 +1,21 @@
+{
+    "Plugins": [
+        {
+            "Info": {
+                "Types": {
+                    "Garch_NukeImage" : {
+                        "bases": ["@PLUGINFO_BASE@"],
+                        "displayName": "Nuke image transfer plugin.",
+                        "imageTypes": ["nuke"],
+                        "precedence": 0
+                    }
+                }
+            },
+            "LibraryPath": "../@PLUGINFO_DYLIB_NAME@",
+            "Name": "NukeImage",
+            "ResourcePath": "resources",
+            "Root": "..",
+            "Type": "library"
+        }
+    ]
+}
