@@ -37,3 +37,6 @@ needed:
 - `BOOST_ROOT`
 - `CMAKE_PREFIX_PATH`
 
+## Initial Contributors
+
+Foundry thanks Luma Pictures and Nathan Rusch for their many contributions during the initiation of this project.
