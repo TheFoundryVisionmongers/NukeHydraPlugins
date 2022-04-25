@@ -15,8 +15,6 @@
 #include <pxr/base/gf/matrix4d.h>
 
 #if PXR_METAL_SUPPORT_ENABLED
-  #include <pxr/imaging/garch/texture.h>
-  #include <pxr/imaging/garch/textureRegistry.h>
   #if PXR_VERSION >= 2105
     #include <pxr/imaging/hio/image.h>
   #else
@@ -25,10 +23,7 @@
   #include <pxr/imaging/hdSt/resourceFactory.h>
 #else
   #include <pxr/imaging/glf/texture.h>
-  #include <pxr/imaging/glf/textureHandle.h>
-  #include <pxr/imaging/glf/textureRegistry.h>
 #endif
-#include <pxr/imaging/hdSt/textureResource.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -89,7 +84,6 @@ bool HdNukeEnvironmentLightAdapter::Update(HdNukeAdapterManager* manager, const 
     else {
         NukeTexturePlugin::Instance().RemoveFile(_assetPath.GetAssetPath());
         _assetPath = SdfAssetPath();
-        _textureResource = nullptr;
     }
 
     changeTracker.MarkSprimDirty(GetPath(), DefaultDirtyBits);
@@ -104,7 +98,6 @@ void HdNukeEnvironmentLightAdapter::TearDown(HdNukeAdapterManager* manager)
     renderIndex.RemoveSprim(HdPrimTypeTokens->domeLight, GetPath());
     NukeTexturePlugin::Instance().RemoveFile(_assetPath.GetAssetPath());
     _assetPath = SdfAssetPath();
-    _textureResource = nullptr;
 }
 
 VtValue HdNukeEnvironmentLightAdapter::Get(const TfToken& key) const
@@ -112,51 +105,12 @@ VtValue HdNukeEnvironmentLightAdapter::Get(const TfToken& key) const
     if (key == HdLightTokens->textureFile) {
         return VtValue{_assetPath};
     }
-    if (key == HdLightTokens->textureResource && _textureResource != nullptr) {
-        return VtValue{_textureResource};
-    }
     if (key == HdTokens->transform) {
         // Dome lights seem to need its transform flipped on the x and y axis.
         static const GfMatrix4d flipMatrix(GfVec4d(-1.0, -1.0, 1.0, 1.0));
         return VtValue{flipMatrix * DDToGfMatrix4d(_lightOp->matrix())};
     }
     return HdNukeAdapter::Get(key);
-}
-
-namespace
-{
-    static HdTextureResourceSharedPtr GetFileTextureResource(const TfToken& filePath, int maxTextureMemory = 4 * 1024 * 1024)
-    {
-#if PXR_METAL_SUPPORT_ENABLED
-        GarchTextureHandleRefPtr texture =
-                    GarchTextureRegistry::GetInstance().GetTextureHandle(
-                    filePath,
-#if PXR_VERSION >= 2105
-                    HioImage::ImageOriginLocation::OriginUpperLeft);
-#else
-                    GarchImage::ImageOriginLocation::OriginUpperLeft);
-#endif
-
-        return HdTextureResourceSharedPtr(
-                    HdStResourceFactory::GetInstance()->NewSimpleTextureResource(texture, HdTextureType::Uv,
-                    HdWrap::HdWrapRepeat, HdWrap::HdWrapRepeat,
-                    HdWrap::HdWrapRepeat, HdMinFilter::HdMinFilterLinear,
-                    HdMagFilter::HdMagFilterLinear,
-                    0));
-#else
-        GlfTextureHandleRefPtr texture =
-                    GlfTextureRegistry::GetInstance().GetTextureHandle(
-                        filePath,
-                        GlfImage::ImageOriginLocation::OriginUpperLeft);
-
-        return HdTextureResourceSharedPtr(
-                    new HdStSimpleTextureResource(texture, HdTextureType::Uv,
-                    HdWrap::HdWrapRepeat, HdWrap::HdWrapRepeat,
-                    HdWrap::HdWrapRepeat, HdMinFilter::HdMinFilterLinear,
-                    HdMagFilter::HdMagFilterLinear,
-                    0));
-#endif
-    }
 }
 
 bool HdNukeEnvironmentLightAdapter::uploadTexture(HdRenderIndex& renderIndex)
@@ -177,7 +131,6 @@ bool HdNukeEnvironmentLightAdapter::uploadTexture(HdRenderIndex& renderIndex)
     }
 
     TfToken filenameToken{filename};
-    _textureResource = GetFileTextureResource(filenameToken);
     _assetPath = SdfAssetPath(filenameToken, filenameToken);
 
     registry->ReloadResource(HdResourceTypeTokens->texture, _assetPath.GetAssetPath());

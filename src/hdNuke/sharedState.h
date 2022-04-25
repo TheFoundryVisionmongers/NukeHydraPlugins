@@ -43,6 +43,7 @@ struct AdapterSharedState
     }
 
     GfVec3f defaultDisplayColor = {0.18f, 0.18f, 0.18f};
+    GfVec4f selectedColor = {0.0f, 1.0f, 0.0f, 1.0f};
     bool interactive = false;
     DD::Image::Matrix4 modelView;
     DD::Image::Matrix4 viewModel;

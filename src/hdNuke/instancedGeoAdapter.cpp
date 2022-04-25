@@ -4,6 +4,7 @@
 #include "adapterManager.h"
 #include "sceneDelegate.h"
 #include "types.h"
+#include "tokens.h"
 
 #include <pxr/imaging/hd/tokens.h>
 
@@ -23,12 +24,13 @@ bool HdNukeInstancedGeoAdapter::SetUp(HdNukeAdapterManager* manager, const VtVal
     auto sceneDelegate = manager->GetSceneDelegate();
     auto& renderIndex = sceneDelegate->GetRenderIndex();
 
-    SdfPath instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
-    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, instancerPath, nukeData);
+    _instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
+    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, _instancerPath, nukeData);
 
-    renderIndex.InsertRprim(GetPrimType(), sceneDelegate, GetPath(), instancerPath);
+    renderIndex.InsertRprim(GetPrimType(), sceneDelegate, GetPath());
 
     HdNukeGeoAdapter::Update(*geoInfoVector.front(), HdChangeTracker::AllDirty, true);
+    _SetMaterial(manager);
 
     return true;
 }
@@ -51,8 +53,9 @@ bool HdNukeInstancedGeoAdapter::Update(HdNukeAdapterManager* manager, const VtVa
         HdNukeGeoAdapter::Update(*geoInfoVector.front(), HdChangeTracker::AllDirty, true);
     }
 
-    SdfPath instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
-    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, instancerPath, nukeData);
+    _instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
+    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, _instancerPath, nukeData);
+    _SetMaterial(manager);
 
     _hash = geoInfoVector.front()->source_geo->Op::hash();
     return true;
@@ -65,9 +68,12 @@ void HdNukeInstancedGeoAdapter::TearDown(HdNukeAdapterManager* manager)
     renderIndex.RemoveRprim(GetPath());
 }
 
-const TfToken& HdNukeInstancedGeoAdapter::GetPrimType() const
+VtValue HdNukeInstancedGeoAdapter::Get(const TfToken& key) const
 {
-    return HdPrimTypeTokens->points;
+    if (key == HdNukeTokens->instancerId) {
+        return VtValue(_instancerPath);
+    }
+    return HdNukeGeoAdapter::Get(key);
 }
 
 class InstancedGeoAdapterCreator : public HdNukeAdapterFactory::AdapterCreator {

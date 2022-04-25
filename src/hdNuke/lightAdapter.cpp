@@ -32,6 +32,7 @@
 #include "adapterFactory.h"
 #include "adapterManager.h"
 #include "sceneDelegate.h"
+#include "tokens.h"
 
 #include <pxr/imaging/hd/tokens.h>
 #include <pxr/imaging/hdSt/renderDelegate.h>
@@ -82,8 +83,14 @@ namespace {
                 frustum.ComputeViewMatrix() * frustum.ComputeProjectionMatrix();
         }
 
-        virtual std::vector<GfMatrix4d> Compute(
-            const GfVec4f &viewport, CameraUtilConformWindowPolicy policy)
+        std::vector<GfMatrix4d> Compute(
+            const GfVec4f &viewport, CameraUtilConformWindowPolicy policy) override
+        {
+            return std::vector<GfMatrix4d>(1, _shadowMatrix);
+        }
+
+        std::vector<GfMatrix4d> Compute(
+            const CameraUtilFraming &framing, CameraUtilConformWindowPolicy policy) override
         {
             return std::vector<GfMatrix4d>(1, _shadowMatrix);
         }
@@ -180,6 +187,7 @@ bool HdNukeLightAdapter::SetUp(HdNukeAdapterManager* manager, const VtValue& nuk
     _lastShadowCollectionHash = GetSharedState()->_shadowCollection.ComputeHash();
 
     renderIndex.InsertSprim(_lightType, sceneDelegate, GetPath());
+    renderIndex.GetChangeTracker().AddCollection(HdNukeTokens->shadowCollection);
 
     return true;
 }
@@ -205,6 +213,7 @@ bool HdNukeLightAdapter::Update(HdNukeAdapterManager* manager, const VtValue& nu
     auto shadowCollectionHash = GetSharedState()->_shadowCollection.ComputeHash();
     if (_lastShadowCollectionHash != shadowCollectionHash) {
         dirtyBits |= HdLight::DirtyCollection;
+        changeTracker.MarkCollectionDirty(HdNukeTokens->shadowCollection);
     }
 
     if (dirtyBits != HdLight::Clean) {
@@ -241,6 +250,21 @@ HdNukeLightAdapter::GetLightParamValue(const TfToken& paramName) const
     }
     else if (paramName == HdLightTokens->radius) {
         return VtValue(_light->sample_width());
+    }
+    else if (paramName == HdLightTokens->shapingConeAngle) {
+        if (_light->lightType() != LightOp::eSpotLight) {
+            return VtValue(180.0f);
+        }
+        float coneAngle = GetKnobValue(_light, "cone_angle", 30.0f);
+        float conePenumbraAngle = GetKnobValue(_light, "cone_penumbra_angle", 0.0f);
+        return VtValue(float(0.5f * (coneAngle + conePenumbraAngle)));
+    }
+    else if (paramName == HdLightTokens->shapingFocus) {
+        if (_light->lightType() != LightOp::eSpotLight) {
+            return VtValue();
+        }
+        float coneFallOff = GetKnobValue(_light, "cone_falloff", 0.0f);
+        return VtValue(float(0.5f * coneFallOff));
     }
     else if (paramName == HdLightTokens->shadowColor) {
         return VtValue(GfVec3f(0));
@@ -311,40 +335,38 @@ VtValue HdNukeLightAdapter::Get(const TfToken& key) const
       simpleLight.SetAttenuation(lightAttenuation);
       return VtValue(simpleLight);
   }
-  else if (_light->cast_shadows() && lightType != LightOp::ePointLight) {
-      if (key == HdLightTokens->shadowParams) {
-          auto lightType = _light->lightType();
-          auto dir = ConvertLightDirection(_light, {0,0,1});
-          Matrix4 matrix(_light->matrix());
-          GfVec3f lightPosition(GfVec3f(matrix.a03, matrix.a13, matrix.a23));
+  else if (key == HdLightTokens->shadowCollection) {
+      return VtValue{GetSharedState()->_shadowCollection};
+  }
+  else if (key == HdLightTokens->shadowParams && _light->cast_shadows() && lightType != LightOp::ePointLight) {
+      auto lightType = _light->lightType();
+      auto dir = ConvertLightDirection(_light, {0,0,1});
+      Matrix4 matrix(_light->matrix());
+      GfVec3f lightPosition(GfVec3f(matrix.a03, matrix.a13, matrix.a23));
 
-          HdxShadowParams shadowParams;
-          shadowParams.enabled = _light->cast_shadows();
-          shadowParams.shadowMatrix = HdxShadowMatrixComputationSharedPtr(
-                  new ShadowMatrix(
-                      lightType == LightOp::eDirectionalLight /* ortho */,
-                      lightPosition,
-                      {dir[0], dir[1], dir[2]}));
+      HdxShadowParams shadowParams;
+      shadowParams.enabled = _light->cast_shadows();
+      shadowParams.shadowMatrix = HdxShadowMatrixComputationSharedPtr(
+              new ShadowMatrix(
+                  lightType == LightOp::eDirectionalLight /* ortho */,
+                  lightPosition,
+                  {dir[0], dir[1], dir[2]}));
 
-          /*
-           * Shadow parameters in Nuke and Hydra don't match one-to-one.
-           * Therefore, these are only approximations.
-           */
-          // For directional lights
-          float blurFactor = 0.001f;
-          if (lightType == LightOp::eSpotLight) {
-              blurFactor = 0.01f;
-          }
-          shadowParams.resolution = GetKnobValue(_light, "depthmap_width", 1024);
-          shadowParams.bias = -0.0001f;
-          shadowParams.blur = blurFactor * (GetKnobValue(_light, "samples", 0.0f) +
-                                            GetKnobValue(_light, "sample_width", 0.0f) +
-                                            GetKnobValue(_light, "shadow_jitter_scale", 0.0f));
-          return VtValue(shadowParams);
+      /*
+       * Shadow parameters in Nuke and Hydra don't match one-to-one.
+       * Therefore, these are only approximations.
+       */
+      // For directional lights
+      float blurFactor = 0.001f;
+      if (lightType == LightOp::eSpotLight) {
+          blurFactor = 0.01f;
       }
-      else if (key == HdLightTokens->shadowCollection) {
-          return VtValue{GetSharedState()->_shadowCollection};
-      }
+      shadowParams.resolution = GetKnobValue(_light, "depthmap_width", 1024);
+      shadowParams.bias = -0.001f;
+      shadowParams.blur = blurFactor * (GetKnobValue(_light, "samples", 0.0f) +
+                                        GetKnobValue(_light, "sample_width", 0.0f) +
+                                        GetKnobValue(_light, "shadow_jitter_scale", 0.0f));
+      return VtValue(shadowParams);
   }
 
   return GetLightParamValue(key);

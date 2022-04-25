@@ -29,8 +29,6 @@ target_link_libraries(${HDNUKE_LIB_NAME}
     Nuke::NDK
     ${PXR_LIBRARIES})
 
-install(TARGETS ${HDNUKE_LIB_NAME} DESTINATION lib COMPONENT Nuke)
-
 # Build the texture bridge plugins
 add_library(${HDNUKETEXTURE_LIB_NAME} SHARED
     hdNukeTexture.cpp)
@@ -47,8 +45,6 @@ target_link_libraries(${HDNUKETEXTURE_LIB_NAME}
 # We must make symbols visible for the plugin as otherwise dynamic_cast to HioImageFactoryBase will fail
 # due to multiple copies of the typeinfo for it.
 set_target_properties(${HDNUKETEXTURE_LIB_NAME} PROPERTIES CXX_VISIBILITY_PRESET default)
-
-install(TARGETS ${HDNUKETEXTURE_LIB_NAME} DESTINATION lib COMPONENT Nuke)
 
 set(HDNUKE_HEADER_FILES
   adapterManager.h
@@ -75,10 +71,6 @@ set(HDNUKE_HEADER_FILES
   utils.h
   vtValueKnobCache.h
 )
-
-install(FILES ${HDNUKE_HEADER_FILES} DESTINATION include/hdNuke COMPONENT Nuke)
-
-install(FILES plugInfo.json DESTINATION lib COMPONENT Nuke)
 
 # We have six variations on the pluginInfo.json depending on platforms and USD version.
 # The library name varies between platforms
@@ -108,10 +100,37 @@ endfunction() # _configure_plugInfo
 set(PLUGINFO_PATH "${CMAKE_CURRENT_LIST_DIR}/hdNukeTexture/resources/plugInfo.json")
 get_filename_component(pluginBasename ${PLUGINFO_PATH} NAME)
 _configure_plugInfo(${PLUGINFO_PATH} ${pluginBasename})
-install(
+
+if(CMAKE_PROJECT_NAME STREQUAL "Nuke")
+  # Override some of the target properties for HdNuke. These need to be different in the Nuke and standalone builds.
+  set_target_properties(${HDNUKE_LIB_NAME}
+      PROPERTIES
+      CXX_VISIBILITY_PRESET default)
+  set_target_properties(${HDNUKE_LIB_NAME}
+      PROPERTIES
+      VISIBILITY_INLINES_HIDDEN ON)
+
+  set_target_properties(${HDNUKE_LIB_NAME}
+    PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:Nuke::Bootstrap>"
+      LIBRARY_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:Nuke::Bootstrap>"
+  )
+  set_target_properties(${HDNUKETEXTURE_LIB_NAME}
+    PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:Nuke::Bootstrap>/usd"
+      LIBRARY_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:Nuke::Bootstrap>/usd"
+  )
+else()
+  install(TARGETS ${HDNUKE_LIB_NAME} DESTINATION lib COMPONENT Nuke)
+  install(TARGETS ${HDNUKETEXTURE_LIB_NAME} DESTINATION lib COMPONENT Nuke)
+
+  install(FILES ${HDNUKE_HEADER_FILES} DESTINATION include/hdNuke COMPONENT Nuke)
+  install(FILES plugInfo.json DESTINATION lib COMPONENT Nuke)
+  install(
     FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${pluginBasename}
     DESTINATION
     lib/hdNukeTexture/resources
     COMPONENT Nuke
-)
+    )
+endif()

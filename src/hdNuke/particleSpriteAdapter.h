@@ -30,6 +30,7 @@ public:
     bool SetUp(HdNukeAdapterManager* manager, const VtValue& nukeData) override;
     bool Update(HdNukeAdapterManager* manager, const VtValue& nukeData) override;
     void TearDown(HdNukeAdapterManager* manager) override;
+    VtValue Get(const TfToken &key) const override;
 
     //! Makes an adapter for an imaginary unit card at the origin. This is used
     //! as a prototype for instancing particle sprites.
@@ -42,6 +43,7 @@ public:
 private:
     void _SetMaterial(HdNukeAdapterManager* manager) override;
     DD::Image::Hash _hash;
+    SdfPath _instancerPath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

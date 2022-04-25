@@ -44,7 +44,8 @@ PXR_NAMESPACE_OPEN_SCOPE
     (doubleSided)                           \
     (instanceCount)                         \
     (reprSelector)                          \
-    (shadowCollection)
+    (shadowCollection)                      \
+    (instancerId)
 
 #define HDNUKE_PATH_TOKENS                  \
     (Geo)                                   \

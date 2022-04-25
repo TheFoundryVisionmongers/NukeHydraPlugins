@@ -89,6 +89,7 @@ struct HydraMaterialContext {
     , _map(map)
     , _output(output)
     , _materialFlags(std::move(flags))
+    , _materialIsOpaque(true)
   {
   }
 
@@ -106,6 +107,7 @@ struct HydraMaterialContext {
   pxr::TfToken _output;
   MaterialFlags _materialFlags;
   std::unordered_set<std::string> _queuedTextures; ///< Textures that have been queued to be generated.
+  bool _materialIsOpaque;                          ///< Indicates that the material is opaque when using UsdPreviewSurface.
 
   bool operator==(const HydraMaterialContext& b) const
   {

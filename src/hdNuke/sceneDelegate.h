@@ -20,7 +20,6 @@
 #include <pxr/imaging/hd/sceneDelegate.h>
 
 #include <pxr/usdImaging/usdImaging/delegate.h>
-#include <pxr/imaging/hd/textureResource.h>
 
 #include <DDImage/GeoOp.h>
 #include <DDImage/Scene.h>
@@ -64,6 +63,8 @@ public:
 
     VtValue Get(const SdfPath& id, const TfToken& key) override;
 
+    SdfPath GetInstancerId(const SdfPath& primId) override;
+
     VtIntArray GetInstanceIndices(const SdfPath& instancerId,
                                   const SdfPath& prototypeId) override;
     SdfPath GetMaterialId(const SdfPath& rprimId) override;
@@ -95,6 +96,7 @@ public:
     HdReprSelector GetReprSelector(SdfPath const &id) override;
 
     void SetDefaultDisplayColor(GfVec3f color);
+    void SetSelectedColor(GfVec4f color);
 
     void BeginSync();
     void EndSync();

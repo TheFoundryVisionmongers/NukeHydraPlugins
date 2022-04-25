@@ -44,7 +44,6 @@ private:
     DD::Image::LightOp* _lightOp;
     DD::Image::Iop* _envMapIop;
     DD::Image::Hash _hash;
-    HdTextureResourceSharedPtr _textureResource;
     SdfAssetPath _assetPath;
 };
 
