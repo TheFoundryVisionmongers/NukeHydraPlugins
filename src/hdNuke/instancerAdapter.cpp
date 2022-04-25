@@ -132,7 +132,7 @@ HdNukeInstancerAdapter::UpdateParticles(const DD::Image::GeoInfo& geoInfo)
             zAxis *= scale;
 
             // Apply the particle translation
-            const DD::Image::Vector3& position = (*pointList)[i];
+            const DD::Image::Vector3& position = geoInfo.matrix.transform((*pointList)[i]);
 
             // Make a complete matrix from the axes and translation
             pxr::GfMatrix4d billboardMatrix(

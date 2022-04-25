@@ -76,8 +76,8 @@ set(HDNUKE_HEADER_FILES
   vtValueKnobCache.h
 )
 
-install(FILES ${HDNUKE_HEADER_FILES} DESTINATION include/hdNuke COMPONENT Nuke)
 
+install(FILES ${HDNUKE_HEADER_FILES} DESTINATION include/hdNuke COMPONENT Nuke)
 install(FILES plugInfo.json DESTINATION lib COMPONENT Nuke)
 
 # We have six variations on the pluginInfo.json depending on platforms and USD version.
@@ -109,9 +109,7 @@ set(PLUGINFO_PATH "${CMAKE_CURRENT_LIST_DIR}/hdNukeTexture/resources/plugInfo.js
 get_filename_component(pluginBasename ${PLUGINFO_PATH} NAME)
 _configure_plugInfo(${PLUGINFO_PATH} ${pluginBasename})
 install(
-    FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/${pluginBasename}
-    DESTINATION
-    lib/hdNukeTexture/resources
+    FILES hdNukeTexture/resources/${pluginBasename}
+    DESTINATION lib/hdNukeTexture/resources
     COMPONENT Nuke
 )
