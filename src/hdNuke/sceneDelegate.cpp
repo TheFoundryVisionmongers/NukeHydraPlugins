@@ -23,8 +23,6 @@
 #include <pxr/imaging/hd/light.h>
 #include "DDImage/Iop.h"
 #if PXR_METAL_SUPPORT_ENABLED
-  #include <pxr/imaging/garch/texture.h>
-  #include <pxr/imaging/garch/textureRegistry.h>
   #if PXR_VERSION >= 2105
     #include <pxr/imaging/hio/image.h>
   #else
@@ -33,10 +31,7 @@
   #include <pxr/imaging/hdSt/resourceFactory.h>
 #else
   #include <pxr/imaging/glf/texture.h>
-  #include <pxr/imaging/glf/textureHandle.h>
-  #include <pxr/imaging/glf/textureRegistry.h>
 #endif
-#include <pxr/imaging/hdSt/textureResource.h>
 #include <pxr/imaging/hdSt/renderDelegate.h>
 #include <pxr/usdImaging/usdImaging/tokens.h>
 #include <pxr/imaging/hd/material.h>
@@ -66,6 +61,7 @@ HdNukeSceneDelegate::HdNukeSceneDelegate(HdRenderIndex* renderIndex)
            HdNukePathTokens->defaultSurface);
     _defaultParticleMaterialId = GetConfig().MaterialRoot().AppendChild(
            HdNukePathTokens->defaultParticleMaterial);
+    sharedState._shadowCollection.SetName(HdNukeTokens->shadowCollection);
     sharedState._shadowCollection.SetRootPath(GetConfig().GeoRoot());
 }
 
@@ -79,6 +75,7 @@ HdNukeSceneDelegate::HdNukeSceneDelegate(HdRenderIndex* renderIndex,
            HdNukePathTokens->defaultSurface);
     _defaultParticleMaterialId = GetConfig().MaterialRoot().AppendChild(
            HdNukePathTokens->defaultParticleMaterial);
+    sharedState._shadowCollection.SetName(HdNukeTokens->shadowCollection);
     sharedState._shadowCollection.SetRootPath(GetConfig().GeoRoot());
 }
 
@@ -146,6 +143,18 @@ HdNukeSceneDelegate::Get(const SdfPath& id, const TfToken& key)
     TF_WARN("HdNukeSceneDelegate::Get : Unrecognized prim id: %s (key: %s)",
             id.GetText(), key.GetText());
     return VtValue();
+}
+
+SdfPath
+HdNukeSceneDelegate::GetInstancerId(const SdfPath& primId)
+{
+    if (auto adapter = _adapterManager.GetAdapter(primId)) {
+        VtValue instancerId = adapter->Get(HdNukeTokens->instancerId);
+        if (instancerId.IsHolding<SdfPath>()) {
+            return instancerId.UncheckedGet<SdfPath>();
+        }
+    }
+    return SdfPath();
 }
 
 VtIntArray
@@ -310,6 +319,12 @@ HdNukeSceneDelegate::SetDefaultDisplayColor(GfVec3f color)
             tracker.MarkPrimvarDirty(p, HdTokens->displayColor);
         }
     }
+}
+
+void
+HdNukeSceneDelegate::SetSelectedColor(GfVec4f color)
+{
+    sharedState.selectedColor = color;
 }
 
 void

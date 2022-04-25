@@ -74,11 +74,13 @@ public:
 void
 HdNukeParticleSpriteAdapter::MakeParticleSprite()
 {
+    _points.clear();
     _points.push_back(pxr::GfVec3f(-0.5f, -0.5f, 0.0f));
     _points.push_back(pxr::GfVec3f(-0.5f,  0.5f, 0.0f));
     _points.push_back(pxr::GfVec3f( 0.5f,  0.5f, 0.0f));
     _points.push_back(pxr::GfVec3f( 0.5f, -0.5f, 0.0f));
 
+    _uvs.clear();
     _uvs.push_back(pxr::GfVec2f(0, 0));
     _uvs.push_back(pxr::GfVec2f(0, 1));
     _uvs.push_back(pxr::GfVec2f(1, 1));
@@ -139,11 +141,11 @@ bool HdNukeParticleSpriteAdapter::SetUp(HdNukeAdapterManager* manager, const VtV
 
     MakeParticleSprite();
 
-    SdfPath instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
-    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, instancerPath, nukeData);
+    _instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
+    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, _instancerPath, nukeData);
 
     if (_geoInfo->display3d != DD::Image::DISPLAY_OFF) {
-        renderIndex.InsertRprim(GetPrimType(), sceneDelegate, GetPath(), instancerPath);
+        renderIndex.InsertRprim(GetPrimType(), sceneDelegate, GetPath());
     }
     else {
         renderIndex.RemoveRprim(GetPath());
@@ -163,14 +165,14 @@ bool HdNukeParticleSpriteAdapter::Update(HdNukeAdapterManager* manager, const Vt
 
     MakeParticleSprite();
 
-    SdfPath instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
-    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, instancerPath, nukeData);
+    _instancerPath = GetPath().AppendChild(HdInstancerTokens->instancer);
+    auto instancerPromise = manager->Request(HdNukeAdapterManagerPrimTypes->Instancer, _instancerPath, nukeData);
 
     if (_hash != _geoInfo->source_geo->Op::hash()) {
         auto& renderIndex = sceneDelegate->GetRenderIndex();
         auto& changeTracker = renderIndex.GetChangeTracker();
         if (_geoInfo->display3d != DD::Image::DISPLAY_OFF) {
-            renderIndex.InsertRprim(GetPrimType(), sceneDelegate, GetPath(), instancerPath);
+            renderIndex.InsertRprim(GetPrimType(), sceneDelegate, GetPath());
         }
         else {
             renderIndex.RemoveRprim(GetPath());
@@ -190,6 +192,14 @@ void HdNukeParticleSpriteAdapter::TearDown(HdNukeAdapterManager* manager)
     auto sceneDelegate = manager->GetSceneDelegate();
     auto& renderIndex = sceneDelegate->GetRenderIndex();
     renderIndex.RemoveRprim(GetPath());
+}
+
+VtValue HdNukeParticleSpriteAdapter::Get(const TfToken& key) const
+{
+    if (key == HdNukeTokens->instancerId) {
+        return VtValue(_instancerPath);
+    }
+    return HdNukeGeoAdapter::Get(key);
 }
 
 void HdNukeParticleSpriteAdapter::_SetMaterial(HdNukeAdapterManager* manager)

@@ -136,7 +136,7 @@ HydraLightOp::MakeLightKnobs(Knob_Callback f)
     Bool_knob(f, &_castShadows, "cast_shadows", "cast shadows");
     SetFlags(f, Knob::STARTLINE);
 #if PXR_VERSION >= 2105
-    RegisterLightParamKnob(f, UsdLuxTokens->inputShadowEnable);
+    RegisterLightParamKnob(f, UsdLuxTokens->inputsShadowEnable);
 #else
     RegisterLightParamKnob(f, UsdLuxTokens->shadowEnable);
 #endif

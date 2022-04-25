@@ -15,15 +15,11 @@
 #include "nukeTexturePlugin.h"
 
 #include "pxr/usdImaging/usdImaging/version.h"
-#if PXR_METAL_SUPPORT_ENABLED
   #if PXR_VERSION >= 2105
     #include "pxr/imaging/hio/image.h"
   #else
     #include "pxr/imaging/garch/image.h"
   #endif
-#else
-  #include "pxr/imaging/glf/image.h"
-#endif
 #include "pxr/imaging/glf/utils.h"
 
 #include "pxr/base/arch/defines.h"
@@ -42,7 +38,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-#if PXR_METAL_SUPPORT_ENABLED
+//#if PXR_METAL_SUPPORT_ENABLED
 #if PXR_VERSION >= 2105
 class Garch_NukeImage : public HioImage {
 public:
@@ -51,11 +47,6 @@ public:
 class Garch_NukeImage : public GarchImage {
 public:
     typedef GarchImage Base;
-#endif
-#else
-class Garch_NukeImage : public GlfImage {
-public:
-    typedef GlfImage Base;
 #endif
 
     Garch_NukeImage();
@@ -119,8 +110,6 @@ TF_REGISTRY_FUNCTION(TfType)
     TfType t = TfType::Define<Image, TfType::Bases<Image::Base> >();
 #if PXR_VERSION >= 2105
     t.SetFactory< HioImageFactory<Image> >();
-#elif PXR_METAL_SUPPORT_ENABLED
-    t.SetFactory< GarchImageFactory<Image> >();
 #else
     t.SetFactory< GlfImageFactory<Image> >();
 #endif
@@ -156,22 +145,22 @@ Garch_NukeImage::GetHeight() const
     return _height;
 }
 
-#if PXR_METAL_SUPPORT_ENABLED && PXR_VERSION >= 2105
+#if PXR_VERSION >= 2105
 /* virtual */
 HioFormat
 Garch_NukeImage::GetFormat() const
 {
   switch (_nchannels) {
       case 1:
-          return HioFormatUNorm8;
+          return HioFormatUNorm8srgb;
       case 2:
-          return HioFormatUNorm8Vec2;
+          return HioFormatUNorm8Vec2srgb;
       case 3:
-          return HioFormatUNorm8Vec3;
+          return HioFormatUNorm8Vec3srgb;
       case 4:
-          return HioFormatUNorm8Vec4;
+          return HioFormatUNorm8Vec4srgb;
       default:
-          return HioFormatUNorm8;
+          return HioFormatUNorm8srgb;
   }
 }
 #else
@@ -242,7 +231,7 @@ Garch_NukeImage::GetNumMipLevels() const
 }
 
 /* virtual */
-#if PXR_METAL_SUPPORT_ENABLED && PXR_VERSION >= 2105
+#if PXR_VERSION >= 2105
 bool
 Garch_NukeImage::_OpenForReading(std::string const & filename,
                                  int subimage,

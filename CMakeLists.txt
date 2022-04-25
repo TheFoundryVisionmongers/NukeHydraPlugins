@@ -80,6 +80,7 @@ if (BUILD_HDNUKE_UNITTESTS)
 
   target_link_libraries(NukeHydraPlugins.UT
     PRIVATE
+      Nuke::DDImage
       ${HDNUKE_LIB_NAME}
       ${arg_USD_LINK_LIBS}
       ${PXR_LIBRARIES}

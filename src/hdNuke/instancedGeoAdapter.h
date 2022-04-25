@@ -25,10 +25,11 @@ public:
     bool SetUp(HdNukeAdapterManager* manager, const VtValue& nukeData) override;
     bool Update(HdNukeAdapterManager* manager, const VtValue& nukeData) override;
     void TearDown(HdNukeAdapterManager* manager) override;
-    const TfToken& GetPrimType() const override;
+    VtValue Get(const TfToken& key) const override;
 
 private:
     DD::Image::Hash _hash;
+    SdfPath _instancerPath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

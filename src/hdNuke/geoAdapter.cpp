@@ -206,6 +206,9 @@ HdNukeGeoAdapter::Get(const TfToken& key) const
       return VtValue(_displayColor);
     }
     else if (key == HdNukeGeoAdapterTokens->overrideWireframeColor) {
+        if (_geoInfo->selected) {
+          return VtValue(GetSharedState()->selectedColor);
+        }
         return VtValue(_wireframeColor);
     }
     else if (key == HdNukeTokens->st) {
@@ -228,6 +231,9 @@ HdNukeGeoAdapter::Get(const TfToken& key) const
     }
     else if (key == HdNukeTokens->reprSelector) {
         return VtValue{GetReprSelector()};
+    }
+    else if (key == HdNukeTokens->instancerId) {
+        return VtValue{}; 
     }
 
     auto it = _primvarData.find(key);
@@ -529,6 +535,9 @@ HdReprSelector
 HdNukeGeoAdapter::GetReprSelectorForGeo(const DD::Image::GeoInfo& geo) const
 {
     if (GetSharedState()->interactive) {
+        if (geo.selected && geo.display3d != DISPLAY_WIREFRAME) {
+          return HdReprSelector(HdReprTokens->refinedWireOnSurf, HdReprTokens->wireOnSurf);
+        }
         switch (geo.display3d) {
         case DISPLAY_WIREFRAME:
             return HdReprSelector(HdReprTokens->refinedWire, HdReprTokens->wire);
@@ -750,10 +759,23 @@ bool HdNukeGeoAdapter::Update(HdNukeAdapterManager* manager, const VtValue& nuke
     auto& changeTracker = renderIndex.GetChangeTracker();
     GeoOp* sourceOp = op_cast<GeoOp*>(_geoInfo->final_geo);
 
+    HdDirtyBits dirtyBits = HdChangeTracker::Clean;
+
+    auto reprSelector = GetReprSelectorForGeo(*_geoInfo);
+    if (reprSelector != _reprSelector) {
+        dirtyBits |= HdChangeTracker::DirtyRepr | HdChangeTracker::DirtyPrimvar;
+        _reprSelector = reprSelector;
+    }
+
     if (_hash != sourceOp->Op::hash()) {
-        auto dirtyBits = DirtyBitsFromUpdateMask(UpdateHashArray(sourceOp, _opStateHashes));
-        Update(*_geoInfo, dirtyBits, false);
-        changeTracker.MarkRprimDirty(GetPath(), dirtyBits);
+        dirtyBits |= DirtyBitsFromUpdateMask(UpdateHashArray(sourceOp, _opStateHashes));
+    }
+
+    if (dirtyBits != HdChangeTracker::Clean) {
+        if (dirtyBits != HdChangeTracker::Clean) {
+            Update(*_geoInfo, dirtyBits, false);
+            changeTracker.MarkRprimDirty(GetPath(), dirtyBits);
+        }
 
         if (GetVisible()) {
             renderIndex.InsertRprim(GetPrimType(), sceneDelegate, GetPath());
